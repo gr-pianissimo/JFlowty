@@ -1,4 +1,4 @@
-package GabrielRosa835.jflowty.functions.extensions.checked;
+package pianissimo.jflowty.functions.checked;
 
 import java.util.function.*;
 
@@ -12,7 +12,7 @@ public interface CheckedConsumer<Input, X extends Exception> extends CheckedFunc
 		return null;
 	}
 
-	static <Input, X extends Exception> Consumer<Input> throwingRuntime(CheckedConsumer<Input, X> checkedConsumer) {
+	static <Input, X extends Exception> Consumer<Input> throwing(CheckedConsumer<Input, X> checkedConsumer) {
 		return input -> {
 			try {
 				checkedConsumer.accept(input);
@@ -22,7 +22,7 @@ public interface CheckedConsumer<Input, X extends Exception> extends CheckedFunc
 		};
 	}
 
-	static <Input, X extends Exception> CheckedConsumer<Input, X> mockThrowing(Consumer<Input> consumer) {
+	static <Input, X extends Exception> CheckedConsumer<Input, X> mock(Consumer<Input> consumer) {
 		return consumer::accept;
 	}
 }

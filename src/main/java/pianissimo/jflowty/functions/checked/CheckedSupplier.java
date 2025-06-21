@@ -1,4 +1,4 @@
-package GabrielRosa835.jflowty.functions.extensions.checked;
+package pianissimo.jflowty.functions.checked;
 
 import java.util.function.*;
 
@@ -11,7 +11,7 @@ public interface CheckedSupplier<Output, X extends Exception> extends CheckedFun
 		return get();
 	}
 
-	static <Output, X extends Exception> Supplier<Output> throwingRuntime(CheckedSupplier<Output, X> checkedSupplier) {
+	static <Output, X extends Exception> Supplier<Output> throwing(CheckedSupplier<Output, X> checkedSupplier) {
 		return () -> {
 			try {
 				return checkedSupplier.get();
@@ -21,7 +21,7 @@ public interface CheckedSupplier<Output, X extends Exception> extends CheckedFun
 		};
 	}
 
-	static <Output, X extends Exception> CheckedSupplier<Output, X> mockThrowing(Supplier<Output> supplier) {
+	static <Output, X extends Exception> CheckedSupplier<Output, X> mock(Supplier<Output> supplier) {
 		return supplier::get;
 	}
 }

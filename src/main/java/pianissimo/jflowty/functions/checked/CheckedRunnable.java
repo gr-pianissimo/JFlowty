@@ -1,4 +1,4 @@
-package GabrielRosa835.jflowty.functions.extensions.checked;
+package pianissimo.jflowty.functions.checked;
 
 @FunctionalInterface
 public interface CheckedRunnable<X extends Exception> extends CheckedFunction<Void, Void, X> {
@@ -10,7 +10,7 @@ public interface CheckedRunnable<X extends Exception> extends CheckedFunction<Vo
 		return null;
 	}
 
-	static <X extends Exception> CheckedRunnable<X> mockThrowing(Runnable runnable) {
+	static <X extends Exception> CheckedRunnable<X> mock(Runnable runnable) {
 		return runnable::run;
 	}
 }

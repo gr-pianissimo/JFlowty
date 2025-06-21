@@ -1,4 +1,4 @@
-package GabrielRosa835.jflowty.functions.extensions.checked;
+package pianissimo.jflowty.functions.checked;
 
 import java.util.function.*;
 
@@ -6,7 +6,7 @@ import java.util.function.*;
 public interface CheckedBiFunction<Input1, Input2, Output, X extends Exception> {
 	Output apply(Input1 input1, Input2 input2) throws X;
 
-	static <Input1, Input2, Output, X extends Exception> BiFunction<Input1, Input2, Output> throwingRuntime(
+	static <Input1, Input2, Output, X extends Exception> BiFunction<Input1, Input2, Output> throwing(
 			CheckedBiFunction<Input1, Input2, Output, X> checkedBiFunction
 	) {
 		return (input1, input2) -> {
@@ -18,7 +18,7 @@ public interface CheckedBiFunction<Input1, Input2, Output, X extends Exception> 
 		};
 	}
 
-	static <Input1, Input2, Output, X extends Exception> CheckedBiFunction<Input1, Input2, Output, X> mockThrowing(
+	static <Input1, Input2, Output, X extends Exception> CheckedBiFunction<Input1, Input2, Output, X> mock(
 			BiFunction<Input1, Input2, Output> biFunction
 	) {
 		return biFunction::apply;

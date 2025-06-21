@@ -1,4 +1,4 @@
-package GabrielRosa835.jflowty.functions.extensions.checked;
+package pianissimo.jflowty.functions.checked;
 
 import java.util.function.*;
 
@@ -11,7 +11,7 @@ public interface CheckedPredicate<Input, X extends Exception> extends CheckedFun
 		return test(input);
 	}
 
-	static <Input, X extends Exception> Predicate<Input> throwingRuntime(CheckedPredicate<Input, X> checkedPredicate) {
+	static <Input, X extends Exception> Predicate<Input> throwing(CheckedPredicate<Input, X> checkedPredicate) {
 		return input -> {
 			try {
 				return checkedPredicate.test(input);
@@ -22,7 +22,7 @@ public interface CheckedPredicate<Input, X extends Exception> extends CheckedFun
 	}
 
 
-	static <Input, Output, X extends Exception> CheckedFunction<Input, Output, X> mockThrowing(Function<Input, Output> function) {
+	static <Input, Output, X extends Exception> CheckedFunction<Input, Output, X> mock(Function<Input, Output> function) {
 		return function::apply;
 	}
 }

@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>GabrielRosa835</groupId>
+    <groupId>gr-pianissimo</groupId>
     <artifactId>jflowty</artifactId>
-    <version>0.5.0</version>
+    <version>1.0.0</version>
     <name>JFlowty</name>
     <description>A functional Java library for handling flow in a flexible and customizable way.</description>
 
@@ -15,5 +15,16 @@
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>8</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
