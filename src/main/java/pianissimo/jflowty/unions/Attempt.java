@@ -5,7 +5,7 @@ import pianissimo.jflowty.functions.conversions.*;
 
 import java.util.*;
 
-import static pianissimo.jflowty.functions.conversions.SuperConsumer.peek;
+import static pianissimo.jflowty.functions.conversions.SuperConsumer.*;
 import static pianissimo.jflowty.functions.conversions.SuperFunction.*;
 
 public abstract class Attempt<TSuccess, TFailure> {
@@ -17,9 +17,40 @@ public abstract class Attempt<TSuccess, TFailure> {
 			SuperFunction<TFailure, U2> onFailure
 	);
 
+	public <TO, TI extends TO> TO then (SuperFunction<Attempt<TSuccess, TFailure>, TI> mapper) {
+		return mapper.apply(this);
+	}
+
+	public static <TSuccess, TFailure> Attempt<TSuccess, TFailure> success (TSuccess success) {
+		return new Attempt.Success<>(success);
+	}
+
+	public static <TSuccess, TFailure> Attempt<TSuccess, TFailure> failure (TFailure failure) {
+		return new Attempt.Failure<>(failure);
+	}
+
 	@SuppressWarnings ("unchecked")
-	public <TO, TI extends TO, A extends Attempt<TSuccess, TFailure>> TO then (SuperFunction<A, TI> mapper) {
-		return mapper.apply((A) this);
+	public static <TSuccess, TFailure extends Exception> Attempt<TSuccess, TFailure> of (
+			CheckedSupplier<TSuccess, TFailure> supplier
+	) {
+		try {
+			return success(supplier.get());
+		} catch (Exception e) {
+			return failure((TFailure) e);
+		}
+	}
+
+	@SuppressWarnings ("unchecked")
+	public static <Input, TSuccess, TFailure extends Exception> SuperFunction<Input, Attempt<TSuccess, TFailure>> of (
+			CheckedFunction<Input, TSuccess, TFailure> function
+	) {
+		return input -> {
+			try {
+				return success(function.apply(input));
+			} catch (Exception e) {
+				return failure((TFailure) e);
+			}
+		};
 	}
 
 	public boolean isSuccess () {
@@ -46,7 +77,99 @@ public abstract class Attempt<TSuccess, TFailure> {
 		return either(Attempt::success, mapper);
 	}
 
-	public TSuccess get() {
+	@SuppressWarnings ("unchecked")
+	public <SO, X extends Exception> Attempt<SO, TFailure> tryMap (
+			CheckedFunction<TSuccess, SO, X> function,
+			SuperFunction<X, SO> onException
+	) {
+		return either(
+				success -> {
+					try {
+						return success(function.apply(success));
+					} catch (Exception e) {
+						return success(onException.apply((X) e));
+					}
+				}, Attempt::failure
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <SO, X extends Exception> Attempt<SO, TFailure> tryFlatMap (
+			CheckedFunction<TSuccess, Attempt<SO, TFailure>, X> function,
+			SuperFunction<X, Attempt<SO, TFailure>> onException
+	) {
+		return either(
+				success -> {
+					try {
+						return function.apply(success);
+					} catch (Exception e) {
+						return onException.apply((X) e);
+					}
+				}, Attempt::failure
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <FO, X extends Exception> Attempt<TSuccess, FO> tryMapFailure (
+			CheckedFunction<TFailure, FO, X> function,
+			SuperFunction<X, FO> onException
+	) {
+		return either(
+				Attempt::success,
+				failure -> {
+					try {
+						return failure(function.apply(failure));
+					} catch (Exception e) {
+						return failure(onException.apply((X) e));
+					}
+				}
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <FO, X extends Exception> Attempt<TSuccess, FO> tryFlatMapFailure (
+			CheckedFunction<TFailure, Attempt<TSuccess, FO>, X> function,
+			SuperFunction<X, Attempt<TSuccess, FO>> onException
+	) {
+		return either(
+				Attempt::success,
+				failure -> {
+					try {
+						return function.apply(failure);
+					} catch (Exception e) {
+						return onException.apply((X) e);
+					}
+				}
+		);
+	}
+
+	public Attempt<TSuccess, TFailure> recover (
+			SuperFunction<TFailure, TSuccess> recovery
+	) {
+		return either(
+				Attempt::success,
+				failure -> success(recovery.apply(failure))
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <X extends Exception> Attempt<TSuccess, TFailure> tryRecover (
+			CheckedFunction<TFailure, TSuccess, X> recovery,
+			SuperFunction<X, TSuccess> onException
+	) {
+		return either(
+				Attempt::success,
+				failure -> {
+					try {
+						return success(recovery.apply(failure));
+					} catch (Exception e) {
+						return success(onException.apply((X) e));
+					}
+				}
+		);
+	}
+
+	public TSuccess get () {
 		return either(identity(), __ -> {throw new UnionTypeException(this);});
 	}
 
@@ -89,7 +212,7 @@ public abstract class Attempt<TSuccess, TFailure> {
 		);
 	}
 
-	public TFailure getFailure() {
+	public TFailure getFailure () {
 		return either(__ -> {throw new UnionTypeException(this);}, identity());
 	}
 
@@ -101,9 +224,9 @@ public abstract class Attempt<TSuccess, TFailure> {
 		return either(__ -> otherFailureSupplier.get(), identity());
 	}
 
-	public Attempt<TSuccess, TFailure> filter (SuperPredicate<TSuccess> predicate, TFailure fail) {
+	public Attempt<TSuccess, TFailure> filter (SuperPredicate<TSuccess> predicate, TFailure onFail) {
 		return either(
-				success -> predicate.test(success) ? success(success) : failure(fail),
+				success -> predicate.test(success) ? success(success) : failure(onFail),
 				Attempt::failure
 		);
 	}
@@ -139,38 +262,6 @@ public abstract class Attempt<TSuccess, TFailure> {
 
 	public void ifFailureDo (SuperConsumer<TFailure> consumer) {
 		either(__ -> null, consumer);
-	}
-
-	public static <TSuccess, TFailure> Attempt<TSuccess, TFailure> success (TSuccess success) {
-		return new Attempt.Success<>(success);
-	}
-
-	public static <TSuccess, TFailure> Attempt<TSuccess, TFailure> failure (TFailure failure) {
-		return new Attempt.Failure<>(failure);
-	}
-
-	@SuppressWarnings ("unchecked")
-	public static <TSuccess, TFailure extends Exception> Attempt<TSuccess, TFailure> of (
-			CheckedSupplier<TSuccess, TFailure> supplier
-	) {
-		try {
-			return success(supplier.get());
-		} catch (Exception e) {
-			return failure((TFailure) e);
-		}
-	}
-
-	@SuppressWarnings ("unchecked")
-	public static <Input, TSuccess, TFailure extends Exception> SuperFunction<Input, Attempt<TSuccess, TFailure>> of (
-			CheckedFunction<Input, TSuccess, TFailure> function
-	) {
-		return input -> {
-			try {
-				return success(function.apply(input));
-			} catch (Exception e) {
-				return failure((TFailure) e);
-			}
-		};
 	}
 
 	private static class Success<TSuccess, TFailure> extends Attempt<TSuccess, TFailure> {

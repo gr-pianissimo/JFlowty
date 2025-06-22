@@ -5,8 +5,8 @@ import pianissimo.jflowty.functions.conversions.*;
 
 import java.util.*;
 
-import static pianissimo.jflowty.functions.conversions.SuperConsumer.peek;
-import static pianissimo.jflowty.functions.conversions.SuperFunction.identity;
+import static pianissimo.jflowty.functions.conversions.SuperConsumer.*;
+import static pianissimo.jflowty.functions.conversions.SuperFunction.*;
 
 public abstract class Option<T> {
 
@@ -14,9 +14,24 @@ public abstract class Option<T> {
 
 	public abstract <U, U1 extends U, U2 extends U> U either (SuperFunction<T, U1> onSome, SuperSupplier<U2> onEmpty);
 
-	@SuppressWarnings ("unchecked")
-	public <TO, TI extends TO, O extends Option<T>> TO then (SuperFunction<O, TI> mapper) {
-		return mapper.apply((O) this);
+	public <U, U2 extends U> U then (SuperFunction<Option<T>, U2> mapper) {
+		return mapper.apply(this);
+	}
+
+	public static <T> Option<T> of (T value) {
+		if (Objects.nonNull(value)) {
+			return new Option.Some<>(value);
+		}
+		return new Option.Empty<>();
+	}
+
+	@SuppressWarnings ("OptionalUsedAsFieldOrParameterType")
+	public static <T> Option<T> of (Optional<T> optional) {
+		return optional.map(Option::of).orElseGet(Option::empty);
+	}
+
+	public static <T> Option<T> empty () {
+		return new Option.Empty<>();
 	}
 
 	public boolean isPresent () {
@@ -41,7 +56,7 @@ public abstract class Option<T> {
 					try {
 						return of(function.apply(some));
 					} catch (Exception e) {
-						return Option.empty();
+						return empty();
 					}
 				}, Option::empty
 		);
@@ -66,7 +81,7 @@ public abstract class Option<T> {
 					try {
 						return function.apply(some);
 					} catch (Exception e) {
-						return Option.empty();
+						return empty();
 					}
 				}, Option::empty
 		);
@@ -85,6 +100,40 @@ public abstract class Option<T> {
 						return recovery.apply((X) e);
 					}
 				}, Option::empty
+		);
+	}
+
+	public Option<T> recover (SuperSupplier<T> recovery) {
+		return either(Option::of, () -> of(recovery.get()));
+	}
+
+	public <X extends Exception> Option<T> tryRecover (CheckedSupplier<T, X> recovery) {
+		return either(
+				Option::of,
+				() -> {
+					try {
+						return of(recovery.get());
+					} catch (Exception e) {
+						return empty();
+					}
+				}
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <X extends Exception> Option<T> tryRecover (
+			CheckedSupplier<T, X> recovery,
+			SuperFunction<X, T> onException
+	) {
+		return either(
+				Option::of,
+				() -> {
+					try {
+						return of(recovery.get());
+					} catch (Exception e) {
+						return of(onException.apply((X) e));
+					}
+				}
 		);
 	}
 
@@ -135,22 +184,6 @@ public abstract class Option<T> {
 
 	public void ifEmptyDo (SuperRunnable runnable) {
 		either(__ -> null, runnable);
-	}
-
-	public static <T> Option<T> of (T value) {
-		if (Objects.nonNull(value)) {
-			return new Option.Some<>(value);
-		}
-		return new Option.Empty<>();
-	}
-
-	public static <T> Option<T> empty () {
-		return new Option.Empty<>();
-	}
-
-	@SuppressWarnings ("OptionalUsedAsFieldOrParameterType")
-	public static <T> Option<T> of (Optional<T> optional) {
-		return optional.map(Option::of).orElseGet(Option::empty);
 	}
 
 	private static class Some<T> extends Option<T> {

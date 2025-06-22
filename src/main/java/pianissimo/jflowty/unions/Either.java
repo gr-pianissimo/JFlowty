@@ -1,12 +1,13 @@
 package pianissimo.jflowty.unions;
 
+import pianissimo.jflowty.functions.checked.*;
 import pianissimo.jflowty.functions.conversions.*;
 
 import java.util.*;
 import java.util.function.*;
 
-import static pianissimo.jflowty.functions.conversions.SuperConsumer.peek;
-import static pianissimo.jflowty.functions.conversions.SuperFunction.identity;
+import static pianissimo.jflowty.functions.conversions.SuperConsumer.*;
+import static pianissimo.jflowty.functions.conversions.SuperFunction.*;
 
 public abstract class Either<TLeft, TRight> {
 
@@ -17,9 +18,16 @@ public abstract class Either<TLeft, TRight> {
 			SuperFunction<TRight, T2> onRight
 	);
 
-	@SuppressWarnings ("unchecked")
-	public <T, T2 extends T, E extends Either<TLeft, TRight>> T then (SuperFunction<E, T2> mapper) {
-		return mapper.apply((E) this);
+	public <T, T2 extends T> T then (SuperFunction<Either<TLeft, TRight>, T2> mapper) {
+		return mapper.apply(this);
+	}
+
+	public static <TLeft, TRight> Either<TLeft, TRight> left (TLeft left) {
+		return new Either.Left<>(left);
+	}
+
+	public static <TLeft, TRight> Either<TLeft, TRight> right (TRight right) {
+		return new Either.Right<>(right);
 	}
 
 	public boolean isLeft () {
@@ -44,6 +52,86 @@ public abstract class Either<TLeft, TRight> {
 
 	public <RO> Either<TLeft, RO> flatMapRight (SuperFunction<TRight, Either<TLeft, RO>> onRight) {
 		return either(Either::left, onRight);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <LO, X extends Exception> Either<LO, TRight> tryMapLeft (
+			CheckedFunction<TLeft, LO, X> onLeft,
+			SuperFunction<X, LO> onException
+	) {
+		return either(
+				left -> {
+					try {
+						return left(onLeft.apply(left));
+					} catch (Exception e) {
+						return left(onException.apply((X) e));
+					}
+				}, Either::right
+		);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <RO, X extends Exception> Either<TLeft, RO> tryMapRight (
+			CheckedFunction<TRight, RO, X> onRight,
+			SuperFunction<X, RO> onException
+	) {
+		return either(
+				Either::left,
+				right -> {
+					try {
+						return right(onRight.apply(right));
+					} catch (Exception e) {
+						return right(onException.apply((X) e));
+					}
+				}
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <LO, X extends Exception> Either<LO, TRight> tryFlatMapLeft (
+			CheckedFunction<TLeft, Either<LO, TRight>, X> onLeft,
+			SuperFunction<X, Either<LO, TRight>> onException
+	) {
+		return either(
+				left -> {
+					try {
+						return onLeft.apply(left);
+					} catch (Exception e) {
+						return onException.apply((X) e);
+					}
+				}, Either::right
+		);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <RO, X extends Exception> Either<TLeft, RO> tryFlatMapRight (
+			CheckedFunction<TRight, Either<TLeft, RO>, X> onRight,
+			SuperFunction<X, Either<TLeft, RO>> onException
+	) {
+		return either(
+				Either::left,
+				right -> {
+					try {
+						return onRight.apply(right);
+					} catch (Exception e) {
+						return onException.apply((X) e);
+					}
+				}
+		);
+	}
+
+	public Either<TLeft, TRight> recoverToLeft(SuperFunction<TRight, TLeft> recovery) {
+		return either(
+				Either::left,
+				right -> left(recovery.apply(right))
+		);
+	}
+
+	public Either<TLeft, TRight> recoverToRight(SuperFunction<TLeft, TRight> recovery) {
+		return either(
+				left -> right(recovery.apply(left)),
+				Either::right
+		);
 	}
 
 	public TLeft getLeft () {
@@ -126,15 +214,7 @@ public abstract class Either<TLeft, TRight> {
 		);
 	}
 
-	public static <TLeft, TRight> Either<TLeft, TRight> left (TLeft left) {
-		return new Either.Left<>(left);
-	}
-
-	public static <TLeft, TRight> Either<TLeft, TRight> right (TRight right) {
-		return new Either.Right<>(right);
-	}
-
-	static class Left<TLeft, TRight> extends Either<TLeft, TRight> {
+	private static class Left<TLeft, TRight> extends Either<TLeft, TRight> {
 		private final TLeft value;
 
 		private Left (TLeft value) {
