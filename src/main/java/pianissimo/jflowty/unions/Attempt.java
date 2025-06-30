@@ -78,34 +78,48 @@ public abstract class Attempt<TSuccess, TFailure> {
 	}
 
 	@SuppressWarnings ("unchecked")
-	public <SO, X extends Exception> Attempt<SO, TFailure> tryMap (
+	public <SO, X extends Exception> Attempt<SO, X> tryMap (
 			CheckedFunction<TSuccess, SO, X> function,
-			SuperFunction<X, SO> onException
+			X exceptionOnFailure
 	) {
-		return either(
-				success -> {
+		return either(success -> {
 					try {
 						return success(function.apply(success));
 					} catch (Exception e) {
-						return success(onException.apply((X) e));
+						return failure((X) e);
 					}
-				}, Attempt::failure
+				}, failure -> failure(exceptionOnFailure)
 		);
 	}
 
 	@SuppressWarnings ("unchecked")
-	public <SO, X extends Exception> Attempt<SO, TFailure> tryFlatMap (
-			CheckedFunction<TSuccess, Attempt<SO, TFailure>, X> function,
-			SuperFunction<X, Attempt<SO, TFailure>> onException
+	public <SO, X extends Exception> Attempt<SO, X> tryMap (
+			CheckedFunction<TSuccess, SO, X> function,
+			SuperSupplier<X> exceptionSupplierOnFailure
+	) {
+		return either(success -> {
+					try {
+						return success(function.apply(success));
+					} catch (Exception e) {
+						return failure((X) e);
+					}
+				}, failure -> failure(exceptionSupplierOnFailure.get())
+		);
+	}
+
+	@SuppressWarnings ("unchecked")
+	public <SO, X extends Exception> Attempt<SO, X> tryFlatMap (
+			CheckedFunction<TSuccess, Attempt<SO, X>, X> function,
+			X exceptionOnFailure
 	) {
 		return either(
 				success -> {
 					try {
 						return function.apply(success);
 					} catch (Exception e) {
-						return onException.apply((X) e);
+						return failure((X) e);
 					}
-				}, Attempt::failure
+				}, failure -> failure(exceptionOnFailure)
 		);
 	}
 

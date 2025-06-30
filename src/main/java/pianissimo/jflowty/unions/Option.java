@@ -30,8 +30,25 @@ public abstract class Option<T> {
 		return optional.map(Option::of).orElseGet(Option::empty);
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <T> Option<T> empty () {
-		return new Option.Empty<>();
+		return (Option<T>) Empty.EMPTY;
+	}
+
+	public static <T, X extends Exception> Option<T> ofTry (CheckedSupplier<T, X> supplier) {
+		try {
+			return of(supplier.get());
+		} catch (Exception e) {
+			return empty();
+		}
+	}
+
+	public static <T> Option<T> ofOptimisticTry (SuperSupplier<T> supplier) {
+		try {
+			return of(supplier.get());
+		} catch (Exception e) {
+			return empty();
+		}
 	}
 
 	public boolean isPresent () {
@@ -214,7 +231,7 @@ public abstract class Option<T> {
 	}
 
 	private static class Empty<T> extends Option<T> {
-		private static final Empty<?> EMPTY = new Empty();
+		private static final Empty<?> EMPTY = new Empty<>();
 
 		private Empty () {}
 
